@@ -10,19 +10,18 @@ headers = {
     "accept": "application/json",
     "X-API-KEY": "bTLH6MwYNtnDZJEZwrVcr4KQuVG9oWXQDKKfEMXjDck="
 }
+response = requests.get(url, headers=headers).json()
+
+all_currencies = []
+# for currency in range(0,20):
+    # all_currencies.append(response['result'][currency]['symbol'])
+for currency in response['result']:
+    all_currencies.append(currency["symbol"])
 
 
-response = requests.get(url, headers=headers).text
-print(response)
-
+print(all_currencies)
 
 # bot = telebot.TeleBot(API_TOKEN)
-
-# # Список сокращений криптовалют
-# crypto_list = ['BTC', 'ETH', 'LTC', 'XRP', 'BCH']
-
-# def crypto_info():
-    
 
 # @bot.message_handler(commands=['start'])
 # def start(message):
