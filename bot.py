@@ -32,9 +32,10 @@ def callback_inline(call):
         bot.send_message(call.message.chat.id, "Вы выбрали раздел 'Избранные'.")
     elif call.data == 'all_crypto':
         markup = types.InlineKeyboardMarkup(row_width=2)
-        for crypto in all_currencies:
-            btn = types.InlineKeyboardButton(crypto, callback_data=crypto)
-            markup.add(btn)
+        for crypto in range(0,len(all_currencies),2):
+            btn1 = types.InlineKeyboardButton(all_currencies[crypto], callback_data=all_currencies[crypto])
+            btn2 = types.InlineKeyboardButton(all_currencies[crypto + 1], callback_data=all_currencies[crypto + 1])
+            markup.add(btn1,btn2)
         bot.send_message(call.message.chat.id, "Выберите криптовалюту:", reply_markup=markup)
     elif call.data in all_currencies:
         bot.send_message(call.message.chat.id, )
