@@ -41,11 +41,13 @@ def callback_inline(call):
             markup.add(btn1,btn2)
         bot.send_message(call.message.chat.id, "Выберите криптовалюту:", reply_markup=markup)
     elif call.data in all_currencies:
-        mark = types.InlineKeyboardMarkup(row_width=1)
-        crypto_id = currencies_id[call.data]
+        markup = types.InlineKeyboardMarkup(row_width=2)
         price = get_price_id(crypto_id)
-        favourite_button = types.InlineKeyboardButton("Добавить в избранное", callback_data='add_to_favourite')
-        mark.add(favourite_button)
+        crypto_id = currencies_id[call.data]
+        for crypto in range(0,len(all_currencies),2):
+            btn1 = types.InlineKeyboardButton('<-Назад', callback_data='get_back')
+            btn2 = types.InlineKeyboardButton("Добавить в избранное ★", callback_data='add_to_favourite')
+            markup.add(btn1,btn2)        
         bot.send_message(call.message.chat.id, f'1 {call.data} -> {round(price, 4)} USDT')
 def get_price_id(crypto_id):
     price_url = f"https://openapiv1.coinstats.app/coins/{crypto_id}"
