@@ -27,7 +27,6 @@ def start(message):
     bot.send_message(message.chat.id, "Выберите раздел:", reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: True)
-
 def callback_inline(call):
     if call.data == 'favorites':
         bot.send_message(call.message.chat.id, "Вы выбрали раздел 'Избранные'.")
@@ -38,5 +37,18 @@ def callback_inline(call):
             btn2 = types.InlineKeyboardButton(all_currencies[crypto + 1], callback_data=all_currencies[crypto + 1])
             markup.add(btn1,btn2)
         bot.send_message(call.message.chat.id, "Выберите криптовалюту:", reply_markup=markup)
+    elif call.data in all_currencies:
+        crypto_id = currencies_id[call.data]
+        price = get_price_id(crypto_id)
+        bot.send_message(call.message.chat.id, f'1 {crypto_id} -> {round(price, 4)} USDT')
+
+
+def get_price_id(crypto_id):
+    price_url = f"https://openapiv1.coinstats.app/coins/{crypto_id}"
+    response = requests.get(price_url, headers=headers).json()
+    # print(response['price'])
+    return response['price']
+
+
 
 bot.infinity_polling()
