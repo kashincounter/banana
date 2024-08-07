@@ -40,15 +40,12 @@ def callback_inline(call):
     elif call.data in all_currencies:
         crypto_id = currencies_id[call.data]
         price = get_price_id(crypto_id)
-        bot.send_message(call.message.chat.id, f'1 {crypto_id} -> {round(price, 4)} USDT')
-
+        bot.send_message(call.message.chat.id, f'1 {call.data} -> {round(price, 4)} USDT')
 
 def get_price_id(crypto_id):
     price_url = f"https://openapiv1.coinstats.app/coins/{crypto_id}"
     response = requests.get(price_url, headers=headers).json()
-    # print(response['price'])
     return response['price']
-
 
 
 bot.infinity_polling()
