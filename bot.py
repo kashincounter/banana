@@ -12,9 +12,9 @@ headers = {
 }
 response = requests.get(coins_url, headers=headers).json()
 
-all_currencies = []
-for currency in response['result']:
-    all_currencies.append(currency["symbol"])
+favourite_coins = []
+all_currencies = [currency["symbol"] for currency in response['result']]
+currencies_id = {currency["symbol"]: currency["id"] for currency in response['result']}
 
 bot = telebot.TeleBot(API_TOKEN)
 
@@ -27,6 +27,7 @@ def start(message):
     bot.send_message(message.chat.id, "Выберите раздел:", reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: True)
+
 def callback_inline(call):
     if call.data == 'favorites':
         bot.send_message(call.message.chat.id, "Вы выбрали раздел 'Избранные'.")
@@ -37,7 +38,5 @@ def callback_inline(call):
             btn2 = types.InlineKeyboardButton(all_currencies[crypto + 1], callback_data=all_currencies[crypto + 1])
             markup.add(btn1,btn2)
         bot.send_message(call.message.chat.id, "Выберите криптовалюту:", reply_markup=markup)
-    elif call.data in all_currencies:
-        bot.send_message(call.message.chat.id, )
 
 bot.infinity_polling()
