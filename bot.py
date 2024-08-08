@@ -38,8 +38,6 @@ def start(message):
     markup.add(btn1, btn2)
     bot.send_message(message.chat.id, "Выберите раздел:", reply_markup=markup)
 
-
-@bot.message_handler(func=lambda message: True)
 def handler_message(message):
     text = message.text
     data_url = f"https://openapiv1.coinstats.app/coins/{text}"
@@ -80,6 +78,7 @@ def callback_inline(call):
     
     elif call.data == 'search_crypto':
         bot.send_message(call.message.chat.id, text='Введите название криптовалюты:')     
+        bot.register_next_step_handler(call.message, handler_message)
 
     elif call.data in all_currencies or call.data in favourite_coins:
         markup = types.InlineKeyboardMarkup(row_width=1)
@@ -138,34 +137,38 @@ def get_price_id(crypto_id):
 def generate_price_chart(crypto_id, cryptocurrency):
     try:
         end_time = datetime.now()
-        start_time = end_time - timedelta(minutes=3)
+        start_time = end_time - timedelta(hours=3)  # Последние 3 часа
 
+        # Получение исторических данных за последние 3 часа
         historical_data = cryptocompare.get_historical_price_minute(
-            cryptocurrency, currency='USD', limit=12 * 3, toTs=int(end_time.timestamp())
+            cryptocurrency, currency='USD', limit=3*60, toTs=int(end_time.timestamp())
         )
-        # print(historical_data)
+
         if not historical_data:
             print("Error fetching historical data.")
             return None
 
-        #TODO: нужно сделать качественное отображение баров https://jenyay.net/Programming/Bar (почитай)
+        # Подготовка данных для графика
+        times = [datetime.fromtimestamp(data['time']) for data in historical_data]
+        values = [data['close'] for data in historical_data]
 
-        times = [datetime.fromtimestamp(data['time']) for data in historical_data[::15]]
-        values = [data['close'] for data in historical_data[::15]]
-        
+        # Построение графика
         plt.figure(figsize=(10, 5))
-        plt.bar(times, values, width=0.01)
+        plt.plot(times, values, marker='o', linestyle='-', color='b')  # Линия с маркерами
+
         plt.xlabel('Time')
-        plt.ylabel('Price')
-        plt.title(f'{cryptocurrency} Price (Last 3 hours)')
+        plt.ylabel('Price (USD)')
+        plt.title(f'{cryptocurrency} Price (Last 3 Hours)')
+        plt.grid(True)  # Включение сетки для лучшей читаемости
         plt.xticks(rotation=45)
         plt.tight_layout()
-        
+
+        # Сохранение графика в поток байтов
         image_stream = io.BytesIO()
         plt.savefig(image_stream, format='png')
         plt.close()
         image_stream.seek(0)
-        
+
         return image_stream
 
     except Exception as e:
