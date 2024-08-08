@@ -93,7 +93,7 @@ def callback_inline(call):
             bot.send_message(call.message.chat.id, f'1 {cryptocurrency} -> {round(price, 4)} USDT', reply_markup=markup)
 
     elif call.data.startswith('add_to_favourite_'):
-        username = call.from_user.username
+        # username = call.from_user.username
         cryptocurrency = call.data.split('_')[-1]
         # if cryptocurrency not in favourite_coins:
         #     favourite_coins.append(cryptocurrency)
