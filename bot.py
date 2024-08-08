@@ -156,6 +156,14 @@ def generate_price_chart(crypto_id, cryptocurrency):
         plt.figure(figsize=(10, 5))
         plt.plot(times, values, marker='o', linestyle='-', color='b')  # Линия с маркерами
 
+        # Добавление аннотации с последней ценой
+        last_time = times[-1]
+        last_value = values[-1]
+        plt.annotate(f'{last_value:.2f} USD', xy=(last_time, last_value), 
+                     xytext=(last_time + timedelta(minutes=15), last_value),
+                     arrowprops=dict(facecolor='black', arrowstyle='->'),
+                     bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="white"))
+
         plt.xlabel('Time')
         plt.ylabel('Price (USD)')
         plt.title(f'{cryptocurrency} Price (Last 3 Hours)')
