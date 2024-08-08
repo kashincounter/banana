@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import io
 
-from db import get_user_favorites, add_to_favorites
+# from db import get_user_favorites, add_to_favorites
 
 API_TOKEN = '7107117054:AAFjuZttOk1rfCOhodWhmbaR1_Z7l5owf4c'
 COIN_STATS_API_KEY = "bTLH6MwYNtnDZJEZwrVcr4KQuVG9oWXQDKKfEMXjDck="
@@ -42,18 +42,28 @@ def start(message):
 def callback_inline(call):
     # if call.data == 'favorites' or call.data == 'all_crypto':
     if call.data == 'favorites':
-        username = call.from_user.username
-        favourites = get_user_favorites(username)
+        # username = call.from_user.username
+        # favourites = get_user_favorites(username)
+
+        # markup = types.InlineKeyboardMarkup(row_width=2)
+        #
+        # for i in range(0, len(favourites), 2):
+        #     btn1 = types.InlineKeyboardButton(favourites[i], callback_data=favourites[i])
+        #     if i + 1 < len(favourites):
+        #         btn2 = types.InlineKeyboardButton(favourites[i + 1], callback_data=favourites[i + 1])
+        #         markup.add(btn1, btn2)
+        #     else:
+        #         markup.add(btn1)
 
         markup = types.InlineKeyboardMarkup(row_width=2)
-
-        for i in range(0, len(favourites), 2):
-            btn1 = types.InlineKeyboardButton(favourites[i], callback_data=favourites[i])
-            if i + 1 < len(favourites):
-                btn2 = types.InlineKeyboardButton(favourites[i + 1], callback_data=favourites[i + 1])
+        for i in range(0, len(favourite_coins), 2):
+            btn1 = types.InlineKeyboardButton(favourite_coins[i], callback_data=favourite_coins[i])
+            if i + 1 < len(favourite_coins):
+                btn2 = types.InlineKeyboardButton(favourite_coins[i + 1], callback_data=favourite_coins[i + 1])
                 markup.add(btn1, btn2)
             else:
                 markup.add(btn1)
+
 
         back_btn = types.InlineKeyboardButton('<-Назад', callback_data='get_back')
         markup.add(back_btn)
@@ -93,11 +103,14 @@ def callback_inline(call):
             bot.send_message(call.message.chat.id, f'1 {cryptocurrency} -> {round(price, 4)} USDT', reply_markup=markup)
 
     elif call.data.startswith('add_to_favourite_'):
-        username = call.from_user.username
-        cryptocurrency = call.data.split('_')[-1]
+        # username = call.from_user.username
+        # cryptocurrency = call.data.split('_')[-1]
         # if cryptocurrency not in favourite_coins:
         #     favourite_coins.append(cryptocurrency)
-        add_to_favorites(username, cryptocurrency)
+        # add_to_favorites(username, cryptocurrency)
+        cryptocurrency = call.data.split('_')[-1]
+        if cryptocurrency not in favourite_coins:
+            favourite_coins.append(cryptocurrency)
 
         bot.answer_callback_query(call.id, text=f"{cryptocurrency} добавлен в избранное!")
 
