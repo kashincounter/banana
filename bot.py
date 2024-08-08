@@ -80,8 +80,15 @@ def callback_inline(call):
                 markup.add(btn1, btn2)
             else:
                 markup.add(btn1)
+        search_btn = types.InlineKeyboardButton('Ввести криптовалюту', callback_data='search_crypto')
+        markup.add(search_btn)
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text="Выберите криптовалюту:", reply_markup=markup)
+                              text="Выберите криптовалюту:", reply_markup=markup)     
+    
+    elif call.data == 'search_crypto':
+        get_crypto_id()
+        
+        
 
     elif call.data in all_currencies or call.data in favourite_coins:
         markup = types.InlineKeyboardMarkup(row_width=1)
@@ -122,6 +129,14 @@ def callback_inline(call):
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                               text="Выберите раздел:", reply_markup=markup)
 
+def get_crypto_id():
+    msg = bot.send_message('Введите название криптовалюты:')
+    bot.register_next_step_handler(msg, get_data_crypto)    
+
+def get_data_crypto(msg):
+    data_url = f"https://openapiv1.coinstats.app/coins/{msg}"
+    response = requests.get(data_url, headers=headers).json()
+    return response
 
 def get_price_id(crypto_id):
     try:
@@ -134,7 +149,6 @@ def get_price_id(crypto_id):
         print(f"{e}")
         return None
 
-
 def generate_price_chart(crypto_id, cryptocurrency):
     try:
         end_time = datetime.now()
@@ -143,30 +157,30 @@ def generate_price_chart(crypto_id, cryptocurrency):
         historical_data = cryptocompare.get_historical_price_minute(
             cryptocurrency, currency='USD', limit=12 * 3, toTs=int(end_time.timestamp())
         )
-        print(historical_data)
+        # print(historical_data)
         if not historical_data:
             print("Error fetching historical data.")
             return None
 
         #TODO: нужно сделать качественное отображение баров https://jenyay.net/Programming/Bar (почитай)
 
-        # times = [datetime.fromtimestamp(data['time']) for data in historical_data[::15]]
-        # values = [data['close'] for data in historical_data[::15]]
-        #
-        # plt.figure(figsize=(10, 5))
-        # plt.bar(times, values, width=0.01)
-        # plt.xlabel('Time')
-        # plt.ylabel('Price')
-        # plt.title(f'{cryptocurrency} Price (Last 3 hours)')
-        # plt.xticks(rotation=45)
-        # plt.tight_layout()
-        #
-        # image_stream = io.BytesIO()
-        # plt.savefig(image_stream, format='png')
-        # plt.close()
-        # image_stream.seek(0)
-        #
-        # return image_stream
+        times = [datetime.fromtimestamp(data['time']) for data in historical_data[::15]]
+        values = [data['close'] for data in historical_data[::15]]
+        
+        plt.figure(figsize=(10, 5))
+        plt.bar(times, values, width=0.01)
+        plt.xlabel('Time')
+        plt.ylabel('Price')
+        plt.title(f'{cryptocurrency} Price (Last 3 hours)')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        
+        image_stream = io.BytesIO()
+        plt.savefig(image_stream, format='png')
+        plt.close()
+        image_stream.seek(0)
+        
+        return image_stream
 
     except Exception as e:
         print(f"Error generating chart: {e}")
