@@ -3,6 +3,7 @@ import telebot
 from telebot import types
 import requests
 import json
+import threading
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import io
@@ -54,7 +55,7 @@ def callback_inline(call):
             btn1 = types.InlineKeyboardButton(favourite_coins[i], callback_data=favourite_coins[i])
             if i + 1 < len(favourite_coins):
                 btn2 = types.InlineKeyboardButton(favourite_coins[i + 1], callback_data=favourite_coins[i + 1])
-                markup.add(btn1, btn2)
+                markup.add(btn1,btn2)
             else:
                 markup.add(btn1)
         back_btn = types.InlineKeyboardButton('<-Назад', callback_data='get_back')
@@ -78,9 +79,7 @@ def callback_inline(call):
                               text="Выберите криптовалюту:", reply_markup=markup)     
     
     elif call.data == 'search_crypto':
-        bot.send_message(call.message.chat.id, text='Введите название криптовалюты:')
-               
-        
+        bot.send_message(call.message.chat.id, text='Введите название криптовалюты:')     
 
     elif call.data in all_currencies or call.data in favourite_coins:
         markup = types.InlineKeyboardMarkup(row_width=1)
@@ -93,8 +92,6 @@ def callback_inline(call):
         fav_btn = types.InlineKeyboardButton("Добавить в избранное ★",
                                              callback_data=f'add_to_favourite_{cryptocurrency}')
         markup.add(back_btn, fav_btn)
-        # bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-        #                       text=f'1 {cryptocurrency} -> {round(price, 4)} USDT', reply_markup=markup)
         if chart_image:
             bot.send_photo(call.message.chat.id, chart_image, caption=f'1 {cryptocurrency} -> {round(price, 4)} USDT',
                            reply_markup=markup)
@@ -118,8 +115,7 @@ def callback_inline(call):
         btn1 = types.InlineKeyboardButton("Избранные", callback_data='favorites')
         btn2 = types.InlineKeyboardButton("Все криптовалюты", callback_data='all_crypto')
         markup.add(btn1, btn2)
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text="Выберите раздел:", reply_markup=markup)   
+        bot.send_message(chat_id=call.message.chat.id, text="Выберите раздел:", reply_markup=markup)   
         
 
 def get_data_crypto(text):
