@@ -4,6 +4,8 @@ from telebot import types
 import requests
 import json
 import threading
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import io
@@ -36,11 +38,32 @@ def start(message):
     markup.add(btn1, btn2)
     bot.send_message(message.chat.id, "Выберите раздел:", reply_markup=markup)
 
+@bot.message_handler(commands=['stop'])
+def stop(message):
+    bot.is_running = False
+    bot.send_message(message.chat.id, 'До скорой встречи!')
+    bot.stop_polling
+
 def handler_message(message):
-    text = message.text
+    text = message.text.lower()
     data_url = f"https://openapiv1.coinstats.app/coins/{text}"
     response = requests.get(data_url, headers=headers).json()
-    bot.send_message(message.chat.id, text=f'1 {response["symbol"]} -> {round(response["price"], 4)} USDT')
+
+    cryptocurrency = response["symbol"]
+    price = round(response["price"], 4)
+
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    back_btn = types.InlineKeyboardButton('<-Назад', callback_data='get_back')
+    fav_btn = types.InlineKeyboardButton("Добавить в избранное ★",
+                                         callback_data=f'add_to_favourite_{cryptocurrency}')
+    markup.add(back_btn, fav_btn)
+
+    chart_image = generate_price_chart(text, cryptocurrency)
+
+    if chart_image:
+        bot.send_photo(message.chat.id, chart_image, caption=f'1 {cryptocurrency} -> {price} USDT', reply_markup=markup)
+    else:
+        bot.send_message(message.chat.id, text=f'1 {cryptocurrency} -> {price} USDT', reply_markup=markup)
 
 
 @bot.callback_query_handler(func=lambda call: True)
