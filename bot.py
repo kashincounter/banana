@@ -132,9 +132,7 @@ def handle_crypto_selection(call):
     )    
     values = [data['close'] for data in historical_data]    
     last_value = values[-1]
-
-    crypto_id = currencies_id[cryptocurrency]
-    chart_image = generate_price_chart(crypto_id, cryptocurrency)
+    chart_image = generate_price_chart(cryptocurrency)
     
     markup = types.InlineKeyboardMarkup(row_width=1)
     back_btn = types.InlineKeyboardButton('<-Назад', callback_data='get_back')
