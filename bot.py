@@ -2,7 +2,6 @@ import cryptocompare
 import telebot
 from telebot import types
 import requests
-import json
 import threading
 import matplotlib
 matplotlib.use('Agg')
@@ -10,7 +9,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import io
 
-API_TOKEN = '7107117054:AAFjuZttOk1rfCOhodWhmbaR1_Z7l5owf4c'
+API_TOKEN = '7215405334:AAF3eZ8ok-u_iJso6i-7K9t_Ni0tJ7SSrLY'
 COIN_STATS_API_KEY = "bTLH6MwYNtnDZJEZwrVcr4KQuVG9oWXQDKKfEMXjDck="
 CRYPTO_COMPARE_API_KEY = "bdf10bc646e114efccaf134bf6c5a9e36e8c10aa73ca28dbc0303645af16f0e6"
 cryptocompare.cryptocompare._set_api_key_parameter(CRYPTO_COMPARE_API_KEY)
@@ -150,7 +149,7 @@ def handle_crypto_selection(call):
         bot.send_message(call.message.chat.id, f'1 {cryptocurrency} -> {round(last_value, 4)} USDT', reply_markup=markup)
 
 
-def generate_price_chart(crypto_id, cryptocurrency):
+def generate_price_chart(cryptocurrency):
     try:
         end_time = datetime.now()
         start_time = end_time - timedelta(hours=3)  # Последние 3 часа
