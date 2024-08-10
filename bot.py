@@ -51,7 +51,13 @@ def handler_message(message):
 
     cryptocurrency = response["symbol"]
     price = round(response["price"], 4)
-
+    end_time = datetime.now()
+    start_time = end_time - timedelta(hours=3)  # Последние 3 часа    
+    historical_data = cryptocompare.get_historical_price_minute(
+        cryptocurrency, currency='USD', limit=3*60, toTs=int(end_time.timestamp())
+    )    
+    values = [data['close'] for data in historical_data]    
+    last_value = values[-1]
     markup = types.InlineKeyboardMarkup(row_width=1)
     back_btn = types.InlineKeyboardButton('<-Назад', callback_data='get_back')
     fav_btn = types.InlineKeyboardButton("Добавить в избранное ★",
@@ -61,13 +67,13 @@ def handler_message(message):
     chart_image = generate_price_chart(text, cryptocurrency)
 
     if chart_image:
-        bot.send_photo(message.chat.id, chart_image, caption=f'1 {cryptocurrency} -> {price} USDT', reply_markup=markup)
+        bot.send_photo(message.chat.id, chart_image, caption=f'1 {cryptocurrency} -> {last_value} USDT', reply_markup=markup)
     else:
-        bot.send_message(message.chat.id, text=f'1 {cryptocurrency} -> {price} USDT', reply_markup=markup)
+        bot.send_message(message.chat.id, text=f'1 {cryptocurrency} -> {last_value} USDT', reply_markup=markup)
 
 
 @bot.callback_query_handler(func=lambda call: True)
-def callback_inline(call):
+def callback_inline(cryptocurrency,call):
     if call.data == 'favorites':
         markup = types.InlineKeyboardMarkup(row_width=2)
         for i in range(0, len(favourite_coins), 2):
@@ -102,7 +108,7 @@ def callback_inline(call):
         bot.register_next_step_handler(call.message, handler_message)
 
     elif call.data in all_currencies or call.data in favourite_coins:
-        threading.Thread(target=handle_crypto_selection, args=(call,)).start()
+        threading.Thread(target=handle_crypto_selection, args=(call,cryptocurrency)).start()
 
     elif call.data.startswith('add_to_favourite_'):
         cryptocurrency = call.data.split('_')[-1]
@@ -118,7 +124,14 @@ def callback_inline(call):
         bot.send_message(chat_id=call.message.chat.id, text="Выберите раздел:", reply_markup=markup)
 
 
-def handle_crypto_selection(call):
+def handle_crypto_selection(cryptocurrency,call):
+    end_time = datetime.now()
+    start_time = end_time - timedelta(hours=3)  # Последние 3 часа    
+    historical_data = cryptocompare.get_historical_price_minute(
+        cryptocurrency, currency='USD', limit=3*60, toTs=int(end_time.timestamp())
+    )    
+    values = [data['close'] for data in historical_data]    
+    last_value = values[-1]
     cryptocurrency = call.data
     crypto_id = currencies_id[cryptocurrency]
     price = get_price_id(crypto_id)
@@ -131,10 +144,10 @@ def handle_crypto_selection(call):
     markup.add(back_btn, fav_btn)
     
     if chart_image:
-        bot.send_photo(call.message.chat.id, chart_image, caption=f'1 {cryptocurrency} -> {round(price, 4)} USDT',
+        bot.send_photo(call.message.chat.id, chart_image, caption=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT',
                        reply_markup=markup)
     else:
-        bot.send_message(call.message.chat.id, f'1 {cryptocurrency} -> {round(price, 4)} USDT', reply_markup=markup)
+        bot.send_message(call.message.chat.id, f'1 {cryptocurrency} -> {round(last_value, 4)} USDT', reply_markup=markup)
 
 
 def get_price_id(crypto_id):
