@@ -73,7 +73,7 @@ def handler_message(message):
 
 
 @bot.callback_query_handler(func=lambda call: True)
-def callback_inline(cryptocurrency,call):
+def callback_inline(call):
     if call.data == 'favorites':
         markup = types.InlineKeyboardMarkup(row_width=2)
         for i in range(0, len(favourite_coins), 2):
@@ -108,7 +108,7 @@ def callback_inline(cryptocurrency,call):
         bot.register_next_step_handler(call.message, handler_message)
 
     elif call.data in all_currencies or call.data in favourite_coins:
-        threading.Thread(target=handle_crypto_selection, args=(call,cryptocurrency)).start()
+        threading.Thread(target=handle_crypto_selection, args=(call,)).start()
 
     elif call.data.startswith('add_to_favourite_'):
         cryptocurrency = call.data.split('_')[-1]
@@ -124,7 +124,8 @@ def callback_inline(cryptocurrency,call):
         bot.send_message(chat_id=call.message.chat.id, text="Выберите раздел:", reply_markup=markup)
 
 
-def handle_crypto_selection(cryptocurrency,call):
+def handle_crypto_selection(call):
+    cryptocurrency = call.data
     end_time = datetime.now()
     start_time = end_time - timedelta(hours=3)  # Последние 3 часа    
     historical_data = cryptocompare.get_historical_price_minute(
@@ -132,9 +133,8 @@ def handle_crypto_selection(cryptocurrency,call):
     )    
     values = [data['close'] for data in historical_data]    
     last_value = values[-1]
-    cryptocurrency = call.data
+
     crypto_id = currencies_id[cryptocurrency]
-    price = get_price_id(crypto_id)
     chart_image = generate_price_chart(crypto_id, cryptocurrency)
     
     markup = types.InlineKeyboardMarkup(row_width=1)
@@ -149,16 +149,6 @@ def handle_crypto_selection(cryptocurrency,call):
     else:
         bot.send_message(call.message.chat.id, f'1 {cryptocurrency} -> {round(last_value, 4)} USDT', reply_markup=markup)
 
-
-def get_price_id(crypto_id):
-    try:
-        price_url = f"https://openapiv1.coinstats.app/coins/{crypto_id}"
-        response = requests.get(price_url, headers=headers).json()
-        return response['price']
-
-    except Exception as e:
-        print(f"{e}")
-        return None
 
 def generate_price_chart(crypto_id, cryptocurrency):
     try:
