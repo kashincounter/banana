@@ -8,6 +8,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import io
+from db import get_user_favorites, add_to_favorites, add_user_if_not_exists
 
 API_TOKEN = '7215405334:AAF3eZ8ok-u_iJso6i-7K9t_Ni0tJ7SSrLY'
 COIN_STATS_API_KEY = "bTLH6MwYNtnDZJEZwrVcr4KQuVG9oWXQDKKfEMXjDck="
@@ -31,17 +32,25 @@ bot = telebot.TeleBot(API_TOKEN)
 
 @bot.message_handler(commands=['start'])
 def start(message):
+    username = message.chat.username
+
+    add_user_if_not_exists(username)
+
+    favourite_coins.extend(get_user_favorites(username))
+
     markup = types.InlineKeyboardMarkup()
     btn1 = types.InlineKeyboardButton("Избранные", callback_data='favorites')
     btn2 = types.InlineKeyboardButton("Все криптовалюты", callback_data='all_crypto')
     markup.add(btn1, btn2)
     bot.send_message(message.chat.id, "Выберите раздел:", reply_markup=markup)
 
+
 @bot.message_handler(commands=['stop'])
 def stop(message):
     bot.is_running = False
     bot.send_message(message.chat.id, 'До скорой встречи!')
-    bot.stop_polling
+    bot.stop_polling()
+
 
 def handler_message(message):
     text = message.text.lower()
@@ -73,7 +82,12 @@ def handler_message(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
+    username = call.message.chat.username
+    favourite_coins = []
+
     if call.data == 'favorites':
+        favourite_coins = get_user_favorites(username)
+
         markup = types.InlineKeyboardMarkup(row_width=2)
         for i in range(0, len(favourite_coins), 2):
             btn1 = types.InlineKeyboardButton(favourite_coins[i], callback_data=favourite_coins[i])
@@ -109,10 +123,10 @@ def callback_inline(call):
     elif call.data in all_currencies or call.data in favourite_coins:
         threading.Thread(target=handle_crypto_selection, args=(call,)).start()
 
+
     elif call.data.startswith('add_to_favourite_'):
         cryptocurrency = call.data.split('_')[-1]
-        if cryptocurrency not in favourite_coins:
-            favourite_coins.append(cryptocurrency)
+        add_to_favorites(username, cryptocurrency)
 
         bot.answer_callback_query(call.id, text=f"{cryptocurrency} добавлен в избранное!")
     elif call.data == 'get_back':

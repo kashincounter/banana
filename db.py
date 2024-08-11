@@ -2,17 +2,32 @@ import psycopg2
 from psycopg2.extras import Json
 
 DB_HOST = "localhost"
-DB_NAME = "user_info"
+DB_NAME = "postgres"
 DB_USER = "postgres"
-DB_PASS = "54885488"
+DB_PASS = "123321"
 
 conn = psycopg2.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS, host=DB_HOST)
 cur = conn.cursor()
 
 
+def add_user_if_not_exists(username):
+    try:
+        cur.execute("SELECT 1 FROM users WHERE username = %s", (username,))
+        result = cur.fetchone()
+        if not result:
+            cur.execute("INSERT INTO users (username, favourite_list) VALUES (%s, %s)", (username, []))
+            conn.commit()
+            print(f"User {username} added to database.")
+        else:
+            print(f"User {username} already exists in database.")
+    except Exception as e:
+        print(f"Error adding user: {e}")
+
+
+
 def get_user_favorites(username):
     try:
-        cur.execute("SELECT favorites FROM user_favorites WHERE username = %s", (username,))
+        cur.execute("SELECT favourite_list FROM users WHERE username = %s", (username,))
         result = cur.fetchone()
         if result:
             return result[0]
@@ -25,16 +40,16 @@ def get_user_favorites(username):
 
 def add_to_favorites(username, cryptocurrency):
     try:
-        cur.execute("SELECT favorites FROM user_favorites WHERE username = %s", (username,))
+        cur.execute("SELECT favourite_list FROM users WHERE username = %s", (username,))
         result = cur.fetchone()
         if result:
-            favorites = result[0]
+            favorites = result[0] if result[0] else []
             if cryptocurrency not in favorites:
                 favorites.append(cryptocurrency)
-                cur.execute("UPDATE user_favorites SET favorites = %s WHERE username = %s", (favorites, username))
+                cur.execute("UPDATE users SET favourite_list = %s WHERE username = %s", (favorites, username))
         else:
             favorites = [cryptocurrency]
-            cur.execute("INSERT INTO user_favorites (username, favorites) VALUES (%s, %s)", (username, favorites))
+            cur.execute("INSERT INTO users (username, favourite_list) VALUES (%s, %s)", (username, favorites))
         conn.commit()
     except Exception as e:
         print(f"Error adding to favorites: {e}")
