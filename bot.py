@@ -57,6 +57,7 @@ def handler_message(message):
     data_url = f"https://openapiv1.coinstats.app/coins/{text}"
     response = requests.get(data_url, headers=headers).json()
 
+    username = message.chat.username
     cryptocurrency = response["symbol"]
     price = round(response["price"], 4)
     end_time = datetime.now()
@@ -83,9 +84,15 @@ def handler_message(message):
     usdt_change = last_value - start_value
     percent_change = ((last_value - start_value) / start_value) * 100
 
+    #Проверка избранных 
+    user_favourites = get_user_favorites(username)
+    if cryptocurrency in user_favourites:
+        fav_btn = types.InlineKeyboardButton("Удалить из избранного X", callback_data=f'remove_from_favourite_{cryptocurrency}')
+    else:
+        fav_btn = types.InlineKeyboardButton("Добавить в избранное ★", callback_data=f'add_to_favourite_{cryptocurrency}')
+    
     markup = types.InlineKeyboardMarkup(row_width=1)
     back_btn = types.InlineKeyboardButton('<-Назад', callback_data='get_back')
-    fav_btn = types.InlineKeyboardButton("Добавить в избранное ★", callback_data=f'add_to_favourite_{cryptocurrency}')
     markup.add(back_btn, fav_btn)
 
     chart_image = generate_price_chart(cryptocurrency)
@@ -117,12 +124,10 @@ def callback_inline(call):
         cryptocurrency = call.data.split('_')[-1]
         add_to_favorites(username, cryptocurrency)
         bot.answer_callback_query(call.id,text=f'{cryptocurrency} добавлен в избранное!')
-        handle_crypto_selection(call)
     elif call.data.startswith('remove_from_favourite_'):
         cryptocurrency = call.data.split('_')[-1]
         remove_from_favourites(username,cryptocurrency)
         bot.answer_callback_query(call.id, text=f'{cryptocurrency} удален из избранного!')
-        handle_crypto_selection(call)
 
     if call.data == 'favorites':
         favourite_coins = get_user_favorites(username)
