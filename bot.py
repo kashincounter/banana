@@ -92,18 +92,18 @@ def handler_message(message):
     if chart_image:
         if percent_change > 0:
             bot.send_photo(message.chat.id, chart_image, 
-                       caption=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: 🠕{percent_change:.2f}%', 
+                       caption=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: {percent_change:.1f}% ↑', 
                        reply_markup=markup)
         elif percent_change < 0:
             bot.send_photo(message.chat.id, chart_image, 
-                       caption=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: 🠗{percent_change:.2f}%', 
+                       caption=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: {percent_change:.1f}% ↓', 
                        reply_markup=markup)            
     else:
         if percent_change > 0:
-            bot.send_message(message.chat.id,text=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: 🠕{percent_change:.2f}%', 
+            bot.send_message(message.chat.id,text=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: {percent_change:.1f}% ↑', 
                             reply_markup=markup)
         elif percent_change < 0:
-            bot.send_message(message.chat.id,text=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: 🠗{percent_change:.2f}%', 
+            bot.send_message(message.chat.id,text=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: {percent_change:.1f}% ↓', 
                             reply_markup=markup)
 
 
@@ -206,9 +206,9 @@ def handle_crypto_selection(call):
     
     # Отправка сообщения с графиком или текстом
     if percent_change > 0:
-        caption = f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: 🠕{percent_change:.2f}%'
+        caption = f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: {percent_change:.1f}% ↑'
     elif percent_change < 0:
-        caption = f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: 🠗{percent_change:.2f}%'
+        caption = f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: {percent_change:.1f}% ↓'
 
     if chart_image:
         bot.send_photo(call.message.chat.id, chart_image, caption=caption, reply_markup=markup)
