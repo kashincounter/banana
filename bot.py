@@ -61,23 +61,50 @@ def handler_message(message):
     price = round(response["price"], 4)
     end_time = datetime.now()
     start_time = end_time - timedelta(hours=3)  # Последние 3 часа    
+
     historical_data = cryptocompare.get_historical_price_minute(
         cryptocurrency, currency='USD', limit=3*60, toTs=int(end_time.timestamp())
-    )    
+    )
+
+    if not historical_data:
+        bot.send_message(message.chat.id, "Не удалось получить данные для этой криптовалюты.")
+        return
+
     values = [data['close'] for data in historical_data]    
     last_value = values[-1]
+
+    # Получаем данные за последние 30 минут
+    start_30_min = end_time - timedelta(minutes=30)
+    historical_data_30_min = cryptocompare.get_historical_price_minute(
+        cryptocurrency, currency='USD', limit=30, toTs=int(end_time.timestamp())
+    )
+
+    start_value = historical_data_30_min[0]['close']
+    percent_change = ((last_value - start_value) / start_value) * 100
+
     markup = types.InlineKeyboardMarkup(row_width=1)
     back_btn = types.InlineKeyboardButton('<-Назад', callback_data='get_back')
-    fav_btn = types.InlineKeyboardButton("Добавить в избранное ★",
-                                         callback_data=f'add_to_favourite_{cryptocurrency}')
+    fav_btn = types.InlineKeyboardButton("Добавить в избранное ★", callback_data=f'add_to_favourite_{cryptocurrency}')
     markup.add(back_btn, fav_btn)
 
-    chart_image = generate_price_chart(text, cryptocurrency)
+    chart_image = generate_price_chart(cryptocurrency)
 
     if chart_image:
-        bot.send_photo(message.chat.id, chart_image, caption=f'1 {cryptocurrency} -> {last_value} USDT', reply_markup=markup)
+        if percent_change > 0:
+            bot.send_photo(message.chat.id, chart_image, 
+                       caption=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: 🠕{percent_change:.2f}%', 
+                       reply_markup=markup)
+        elif percent_change < 0:
+            bot.send_photo(message.chat.id, chart_image, 
+                       caption=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: 🠗{percent_change:.2f}%', 
+                       reply_markup=markup)            
     else:
-        bot.send_message(message.chat.id, text=f'1 {cryptocurrency} -> {last_value} USDT', reply_markup=markup)
+        if percent_change > 0:
+            bot.send_message(message.chat.id,text=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: 🠕{percent_change:.2f}%', 
+                            reply_markup=markup)
+        elif percent_change < 0:
+            bot.send_message(message.chat.id,text=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: 🠗{percent_change:.2f}%', 
+                            reply_markup=markup)
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -140,26 +167,53 @@ def callback_inline(call):
 def handle_crypto_selection(call):
     cryptocurrency = call.data
     end_time = datetime.now()
-    start_time = end_time - timedelta(hours=3)  # Последние 3 часа    
+    
+    # Получаем данные за последние 3 часа
     historical_data = cryptocompare.get_historical_price_minute(
         cryptocurrency, currency='USD', limit=3*60, toTs=int(end_time.timestamp())
-    )    
-    values = [data['close'] for data in historical_data]    
-    last_value = values[-1]
+    )
+    
+    if not historical_data:
+        bot.send_message(call.message.chat.id, "Не удалось получить данные для этой криптовалюты.")
+        return
+
+    # Последнее значение цены
+    last_value = historical_data[-1]['close']
+
+    # Получаем данные за последние 30 минут
+    historical_data_30_min = cryptocompare.get_historical_price_minute(
+        cryptocurrency, currency='USD', limit=30, toTs=int(end_time.timestamp())
+    )
+    
+    if not historical_data_30_min:
+        bot.send_message(call.message.chat.id, "Не удалось получить данные за последние 30 минут.")
+        return
+
+    # Цена 30 минут назад
+    start_value = historical_data_30_min[0]['close']
+    
+    # Рассчитываем процентное изменение
+    percent_change = ((last_value - start_value) / start_value) * 100
+
+    # Генерация графика
     chart_image = generate_price_chart(cryptocurrency)
     
+    # Создание разметки с кнопками
     markup = types.InlineKeyboardMarkup(row_width=1)
     back_btn = types.InlineKeyboardButton('<-Назад', callback_data='get_back')
-    fav_btn = types.InlineKeyboardButton("Добавить в избранное ★",
-                                         callback_data=f'add_to_favourite_{cryptocurrency}')
+    fav_btn = types.InlineKeyboardButton("Добавить в избранное ★", callback_data=f'add_to_favourite_{cryptocurrency}')
     markup.add(back_btn, fav_btn)
     
-    if chart_image:
-        bot.send_photo(call.message.chat.id, chart_image, caption=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT',
-                       reply_markup=markup)
-    else:
-        bot.send_message(call.message.chat.id, f'1 {cryptocurrency} -> {round(last_value, 4)} USDT', reply_markup=markup)
+    # Отправка сообщения с графиком или текстом
+    if percent_change > 0:
+        caption = f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: 🠕{percent_change:.2f}%'
+    elif percent_change < 0:
+        caption = f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: 🠗{percent_change:.2f}%'
 
+    if chart_image:
+        bot.send_photo(call.message.chat.id, chart_image, caption=caption, reply_markup=markup)
+    else:
+        bot.send_message(call.message.chat.id, caption, reply_markup=markup)
 
 def generate_price_chart(cryptocurrency):
     try:
