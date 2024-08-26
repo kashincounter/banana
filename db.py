@@ -53,3 +53,27 @@ def add_to_favorites(username, cryptocurrency):
         conn.commit()
     except Exception as e:
         print(f"Error adding to favorites: {e}")
+
+def remove_from_favourites(username, cryptocurrency):
+    try:
+        # Получаем текущий список избранного пользователя
+        cur.execute("SELECT favourite_list FROM favourite_info WHERE username = %s", (username,))
+        result = cur.fetchone()
+        
+        if result:
+            favorites = result[0] if result[0] else []
+            
+            # Проверяем, есть ли криптовалюта в списке избранного
+            if cryptocurrency in favorites:
+                favorites.remove(cryptocurrency)
+                
+                # Обновляем список избранного пользователя
+                cur.execute("UPDATE favourite_info SET favourite_list = %s WHERE username = %s", (favorites, username))
+                conn.commit()
+                print(f"{cryptocurrency} удалена из избранного для пользователя {username}.")
+            else:
+                print(f"{cryptocurrency} не найдена в избранном пользователя {username}.")
+        else:
+            print(f"Пользователь {username} не найден в базе данных.")
+    except Exception as e:
+        print(f"Error removing from favorites: {e}")

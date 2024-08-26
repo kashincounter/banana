@@ -8,7 +8,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import io
-from db import get_user_favorites, add_to_favorites, add_user_if_not_exists
+from db import get_user_favorites, add_to_favorites, add_user_if_not_exists, remove_from_favourites
 
 API_TOKEN = '7215405334:AAF3eZ8ok-u_iJso6i-7K9t_Ni0tJ7SSrLY'
 COIN_STATS_API_KEY = "bTLH6MwYNtnDZJEZwrVcr4KQuVG9oWXQDKKfEMXjDck="
@@ -80,6 +80,7 @@ def handler_message(message):
     )
 
     start_value = historical_data_30_min[0]['close']
+    usdt_change = last_value - start_value
     percent_change = ((last_value - start_value) / start_value) * 100
 
     markup = types.InlineKeyboardMarkup(row_width=1)
@@ -92,18 +93,18 @@ def handler_message(message):
     if chart_image:
         if percent_change > 0:
             bot.send_photo(message.chat.id, chart_image, 
-                       caption=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: {percent_change:.1f}% ↑', 
+                       caption=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: {percent_change:.1f}% | {usdt_change:.3f} USDT ↑', 
                        reply_markup=markup)
         elif percent_change < 0:
             bot.send_photo(message.chat.id, chart_image, 
-                       caption=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: {percent_change:.1f}% ↓', 
+                       caption=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: {percent_change:.1f}% | {usdt_change:.3f} USDT ↓', 
                        reply_markup=markup)            
     else:
         if percent_change > 0:
-            bot.send_message(message.chat.id,text=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: {percent_change:.1f}% ↑', 
+            bot.send_message(message.chat.id,text=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: {percent_change:.1f}% | {usdt_change:.3f} USDT ↑', 
                             reply_markup=markup)
         elif percent_change < 0:
-            bot.send_message(message.chat.id,text=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: {percent_change:.1f}% ↓', 
+            bot.send_message(message.chat.id,text=f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: {percent_change:.1f}% | {usdt_change:.3f} USDT ↓', 
                             reply_markup=markup)
 
 
@@ -111,6 +112,17 @@ def handler_message(message):
 def callback_inline(call):
     username = call.message.chat.username
     favourite_coins = []
+
+    if call.data.startswith('add_to_favourite_'):
+        cryptocurrency = call.data.split('_')[-1]
+        add_to_favorites(username, cryptocurrency)
+        bot.answer_callback_query(call.id,text=f'{cryptocurrency} добавлен в избранное!')
+        handle_crypto_selection(call)
+    elif call.data.startswith('remove_from_favourite_'):
+        cryptocurrency = call.data.split('_')[-1]
+        remove_from_favourites(username,cryptocurrency)
+        bot.answer_callback_query(call.id, text=f'{cryptocurrency} удален из избранного!')
+        handle_crypto_selection(call)
 
     if call.data == 'favorites':
         favourite_coins = get_user_favorites(username)
@@ -150,12 +162,6 @@ def callback_inline(call):
     elif call.data in all_currencies or call.data in favourite_coins:
         threading.Thread(target=handle_crypto_selection, args=(call,)).start()
 
-
-    elif call.data.startswith('add_to_favourite_'):
-        cryptocurrency = call.data.split('_')[-1]
-        add_to_favorites(username, cryptocurrency)
-
-        bot.answer_callback_query(call.id, text=f"{cryptocurrency} добавлен в избранное!")
     elif call.data == 'get_back':
         markup = types.InlineKeyboardMarkup()
         btn1 = types.InlineKeyboardButton("Избранные", callback_data='favorites')
@@ -165,6 +171,7 @@ def callback_inline(call):
 
 
 def handle_crypto_selection(call):
+    username = call.message.chat.username
     cryptocurrency = call.data
     end_time = datetime.now()
     
@@ -193,27 +200,39 @@ def handle_crypto_selection(call):
     start_value = historical_data_30_min[0]['close']
     
     # Рассчитываем процентное изменение
+    usdt_change = last_value - start_value
     percent_change = ((last_value - start_value) / start_value) * 100
 
     # Генерация графика
     chart_image = generate_price_chart(cryptocurrency)
+
+    #Проверка избранных 
+    user_favourites = get_user_favorites(username)
+    if cryptocurrency in user_favourites:
+        fav_btn = types.InlineKeyboardButton("Удалить из избранного X", callback_data=f'remove_from_favourite_{cryptocurrency}')
+    else:
+        fav_btn = types.InlineKeyboardButton("Добавить в избранное ★", callback_data=f'add_to_favourite_{cryptocurrency}')
     
     # Создание разметки с кнопками
     markup = types.InlineKeyboardMarkup(row_width=1)
     back_btn = types.InlineKeyboardButton('<-Назад', callback_data='get_back')
-    fav_btn = types.InlineKeyboardButton("Добавить в избранное ★", callback_data=f'add_to_favourite_{cryptocurrency}')
     markup.add(back_btn, fav_btn)
     
     # Отправка сообщения с графиком или текстом
-    if percent_change > 0:
-        caption = f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: {percent_change:.1f}% ↑'
-    elif percent_change < 0:
-        caption = f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: {percent_change:.1f}% ↓'
-
     if chart_image:
-        bot.send_photo(call.message.chat.id, chart_image, caption=caption, reply_markup=markup)
+        if percent_change > 0:
+            caption = f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: {percent_change:.1f}% | {usdt_change:.3f} USDT ↑'
+            bot.send_photo(call.message.chat.id, chart_image, caption=caption, reply_markup=markup)
+        elif percent_change < 0:
+            caption = f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: {percent_change:.1f}% | {usdt_change:.3f} USDT ↓'
+            bot.send_photo(call.message.chat.id, chart_image, caption=caption, reply_markup=markup)
     else:
-        bot.send_message(call.message.chat.id, caption, reply_markup=markup)
+        if percent_change > 0:
+            caption = f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: {percent_change:.1f}% | {usdt_change:.3f} USDT ↑'
+            bot.send_message(call.message.chat.id, caption=caption, reply_markup=markup)
+        elif percent_change < 0:
+            caption = f'1 {cryptocurrency} -> {round(last_value, 4)} USDT\nЗа 30 минут: {percent_change:.1f}% | {usdt_change:.3f} USDT ↓'
+            bot.send_message(call.message.chat.id, caption=caption, reply_markup=markup)
 
 def generate_price_chart(cryptocurrency):
     try:
